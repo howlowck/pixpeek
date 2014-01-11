@@ -9,7 +9,8 @@ var queries = {
     'imgur': '#content img',
     'livememe': '#memeImage'
 }
-anchors = Array.prototype.slice.call(document.querySelectorAll('a'))
+
+anchors = [].slice.call(document.querySelectorAll('a'));
 anchors.forEach(function(a) {
     a.addEventListener('mouseover', processAnchorLink);
     a.addEventListener('mouseout', removeEmbed);
@@ -42,20 +43,18 @@ function makeEmbed(anchor) {
 function fetchContent(url) {
     var xhr = new XMLHttpRequest();
     var type = guessSourceType(url);
-    if (type in queries) {
-        xhr.open("GET", url, true);
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4) {
-                // innerText does not let the attacker inject HTML elements.
-                hiddenEl.innerHTML = xhr.response;
-                var img = hiddenEl.querySelector(queries[type]);
-                if (!! img) {
-                    makeEmbed(img.src);
-                }
+    if (queries.hasOwnProperty(type)) {
+        xhr.open("GET", url);
+        xhr.onload = function() {
+            // innerText does not let the attacker inject HTML elements.
+            hiddenEl.innerHTML = xhr.response;
+            var img = hiddenEl.querySelector(queries[type]);
+            if (!! img) {
+                makeEmbed(img.src);
             }
         }
+        xhr.send();
     }
-    xhr.send();
 }
 
 function getFrame() {
