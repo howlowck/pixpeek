@@ -6,51 +6,84 @@ var imgPatt = /^.*(jpg|png|gif){1}(\?.*)?$/i;
 var state = false;
 var hiddenEl = document.createElement('div');
 var queries = {
-    'imgur': '#content img',
+    'imgur': '#content #image img',
+    'imgur-album': '#content #image-container .image img',
     'livememe': '#memeImage'
 }
-
+var images = [];
+var currentType;
 anchors = [].slice.call(document.querySelectorAll('a'));
 anchors.forEach(function(a) {
     a.addEventListener('mouseover', processAnchorLink);
-    a.addEventListener('mouseout', removeEmbed);
+    a.addEventListener('mouseout', reset);
 });
+
+function guessSourceType(url) {
+    if (str_in(/\/\/.*imgur.com\/a\/.+\#\d+/, url)) {
+        currentType = 'multi-page';
+        return 'imgur-album-multi'
+    }
+
+    if (str_in(/imgur.+\/a\/.+/, url)) {
+        currentType = 'album';
+        return 'imgur-album';
+    }
+
+    if ( str_in(/imgur/, url) ) {
+        currentType = 'single';
+        return 'imgur';
+    }
+    if ( str_in(/livememe/, url) ) {
+        currentType = 'single';
+        return 'livememe';
+    }
+}
 
 function processAnchorLink(ev) {
     isEnabled(function () {
-        if (str_in(imgPatt, ev.target.href)) {
-            makeEmbed(ev.target.href);
+//        console.log(ev);
+        if (ev.target.tagName == 'IMG') {
+             main(ev.target.parentElement);
         } else {
-            fetchContent(ev.target.href);
+            main(ev.target);
         }
     });
 }
 
-function makeEmbed(anchor) {
-
+function main(el) {
+    console.log(el);
+    if (str_in(imgPatt, el.href)) {
+        makeEmbed([el.href]);
+    } else {
+        fetchContent(el);
+    }
+}
+function makeEmbed(srcArray) {
     frame = getFrame();
-    frame.src = anchor;
-    setFrameStyle({
-        'max-width': '500px',
-        width: '100%',
+    setStyle(frame, {
         position: 'fixed',
         top: 0,
         right: 0,
         'z-index': '9999999'
     });
+    srcArray.forEach(function (src) {
+        makeImage(src);
+    });
 }
 
-function fetchContent(url) {
+function fetchContent(anchor) {
     var xhr = new XMLHttpRequest();
+    var url = anchor.href;
     var type = guessSourceType(url);
     if (queries.hasOwnProperty(type)) {
         xhr.open("GET", url);
         xhr.onload = function() {
             // innerText does not let the attacker inject HTML elements.
             hiddenEl.innerHTML = xhr.response;
-            var img = hiddenEl.querySelector(queries[type]);
-            if (!! img) {
-                makeEmbed(img.src);
+            var nodes = hiddenEl.querySelectorAll(queries[type]);
+            if (nodes.length > 0) {
+                var imgArray = [].slice.call(nodes);
+                makeEmbed(getSrc(imgArray));
             }
         }
         xhr.send();
@@ -60,30 +93,23 @@ function fetchContent(url) {
 function getFrame() {
     var frame = document.getElementById(frameId);
     if (frame == null) {
-        frame = document.createElement('img');
+        frame = document.createElement('div');
         frame.id = frameId;
         document.body.appendChild(frame);
     }
     return frame;
 }
-function setFrameDim(width, height) {
-   setFrameStyle({
-       'width' : width + 'px',
-       'height': height + 'px'
-   });
-}
 
-function setFrameStyle(styles) {
+function setStyle(el ,styles) {
     var styleString = '';
    for (var prop in styles)  {
        styleString += prop + ': ' + styles[prop]+'; ';
    }
-    var frame = getFrame();
-    frame.setAttribute('style', styleString);
+    el.setAttribute('style', styleString);
 }
 
 function str_in(pat, str) {
-    if (typeof str == 'undefined') {
+    if (typeof str == 'undefined' || str == null) {
         return false;
     }
     results = str.match(pat);
@@ -103,13 +129,52 @@ function isEnabled(callback) {
          }
     });
 }
+function makeImage(src) {
+    var frame = getFrame();
+    var img = document.createElement('img');
+    images.push(img);
+    img.src = src;
 
-function guessSourceType(url) {
-    if ( str_in(/imgur/, url) ) {
-        return 'imgur';
+    if (images.length > 1) {
+       hide(img);
+    } else {
+       showImg(img);
     }
-    if ( str_in(/livememe/, url) ) {
-        return 'livememe';
-    }
+    frame.appendChild(img);
+    console.log(currentType);
+}
 
+function getSrc(elArray) {
+    var patt = /\/\//;
+    var srcArray = [];
+    elArray.forEach(function (el) {
+        console.log(el);
+        if (str_in(patt, el.src)) {
+            srcArray.push(el.src);
+        }
+        if (str_in(patt, el.getAttribute('data-src'))) {
+            srcArray.push(el.getAttribute('data-src'));
+        }
+    });
+    return srcArray;
+}
+
+function hide(el) {
+    setStyle(el, {
+        display: 'none'
+    });
+}
+
+function showImg(el) {
+    setStyle(el, {
+        display: 'block',
+        'max-width': '500px',
+        width: '100%'
+    });
+}
+
+function reset() {
+    removeEmbed();
+    images = [];
+    currentType = 'undetermined';
 }

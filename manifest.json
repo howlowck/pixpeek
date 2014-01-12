@@ -1,6 +1,6 @@
 {
     "manifest_version": 2,
-    "version": "0.0.2",
+    "version": "0.0.3",
     "name": "PixPeeker",
     "description": "Hover Over links to see images overlaid on current page",
     "browser_action": {
