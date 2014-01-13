@@ -8,7 +8,7 @@ var hiddenEl = document.createElement('div');
 var queries = {
     'imgur': '#content #image img',
     'imgur-album': '#content #image-container .image img',
-    'livememe': '#memeImage'
+    'livememe': 'link[rel="image_src"]'
 }
 var images = [];
 var currentType;
@@ -33,6 +33,7 @@ function guessSourceType(url) {
         currentType = 'single';
         return 'imgur';
     }
+
     if ( str_in(/livememe/, url) ) {
         currentType = 'single';
         return 'livememe';
@@ -41,7 +42,6 @@ function guessSourceType(url) {
 
 function processAnchorLink(ev) {
     isEnabled(function () {
-//        console.log(ev);
         if (ev.target.tagName == 'IMG') {
              main(ev.target.parentElement);
         } else {
@@ -51,7 +51,6 @@ function processAnchorLink(ev) {
 }
 
 function main(el) {
-    console.log(el);
     if (str_in(imgPatt, el.href)) {
         makeEmbed([el.href]);
     } else {
@@ -79,10 +78,12 @@ function fetchContent(anchor) {
         xhr.open("GET", url);
         xhr.onload = function() {
             // innerText does not let the attacker inject HTML elements.
-            hiddenEl.innerHTML = xhr.response;
+            hiddenEl.innerHTML = xhr.responseText;
+
             var nodes = hiddenEl.querySelectorAll(queries[type]);
-            if (nodes.length > 0) {
-                var imgArray = [].slice.call(nodes);
+            var imgArray = [].slice.call(nodes);
+
+            if (imgArray.length > 0) {
                 makeEmbed(getSrc(imgArray));
             }
         }
@@ -141,19 +142,20 @@ function makeImage(src) {
        showImg(img);
     }
     frame.appendChild(img);
-    console.log(currentType);
 }
 
 function getSrc(elArray) {
     var patt = /\/\//;
     var srcArray = [];
     elArray.forEach(function (el) {
-        console.log(el);
         if (str_in(patt, el.src)) {
             srcArray.push(el.src);
         }
         if (str_in(patt, el.getAttribute('data-src'))) {
             srcArray.push(el.getAttribute('data-src'));
+        }
+        if (str_in(patt, el.href)) {
+            srcArray.push(el.href);
         }
     });
     return srcArray;
