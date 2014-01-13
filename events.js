@@ -1,25 +1,49 @@
 /**
  * Created by haoluo on 1/11/14.
  */
-stamp = document.createElement('div');
-stamp.id = 'extension-on';
-document.body.appendChild(stamp);
-chrome.browserAction.onClicked.addListener(function (tab) {
-    if (stamp.id == 'extension-on') {
-        chrome.browserAction.setIcon({path: 'media/off.png'});
-        stamp.id = 'extension-off';
-    } else {
+var title = 'PixPeeker';
+var currentState;
+getEnabled(function (enabled) {
+    if (enabled) {
         chrome.browserAction.setIcon({path: 'media/on.png'});
-        stamp.id = 'extension-on';
+        currentState = true;
+    } else {
+        chrome.browserAction.setIcon({path: 'media/off.png'});
+        currentState = false;
     }
+});
+
+chrome.browserAction.onClicked.addListener(function (tab) {
+    getEnabled(function (enabled) {
+        if (enabled) {
+            chrome.browserAction.setIcon({path: 'media/off.png'});
+            setTitle(false);
+            currentState = false;
+        } else {
+            chrome.browserAction.setIcon({path: 'media/on.png'});
+            setTitle(true);
+            currentState = true;
+        }
+    });
 });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     var response = {};
-    if (stamp.id == 'extension-on') {
-        response.enabled = true;
-    } else {
-        response.enabled = false;
-    }
+    response.enabled = currentState;
     sendResponse(response);
-})
+});
+
+function getEnabled(callback) {
+    chrome.browserAction.getTitle({}, function (title) {
+        callback( title.match(/Enabled/i) !== null );
+    });
+}
+
+function setTitle(enabled) {
+    if (enabled) {
+        chrome.browserAction.setTitle({'title': title + '-Enabled'});
+    } else {
+        chrome.browserAction.setTitle({'title': title + '-Disabled'});
+    }
+}
+

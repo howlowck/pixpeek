@@ -1,11 +1,11 @@
 {
     "manifest_version": 2,
-    "version": "0.0.4",
+    "version": "0.0.5",
     "name": "PixPeeker",
     "description": "Hover Over links to see images overlaid on current page",
     "browser_action": {
         "default_icon": "media/on.png",
-        "default_title": "PixPeeker"
+        "default_title": "PixPeeker-Enabled"
     },
     "permissions": [
         "webNavigation"
