@@ -124,9 +124,7 @@ function removeEmbed() {
 
 function isEnabled(callback) {
     var result;
-    console.log('fetching...');
     chrome.runtime.sendMessage('currentState', function(response) {
-        console.log(response);
          if ( response.enabled == true ) {
              callback();
          }
